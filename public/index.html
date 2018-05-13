@@ -1,0 +1,183 @@
+<html>
+<meta charset="UTF-8">
+<head>
+<style>
+
+body{
+	margin: 0px;
+	text-align: center;
+}
+
+h1{
+	width:80%;
+	text-align: center;
+}
+
+button{
+    border: 1px solid black;
+    background-color: lightgray;
+    color: black;
+    border-radius: 0.5em;
+    padding: 4px;
+    margin: 3px;
+    width: 100px;
+}
+
+button#new{
+	width: 50px;
+	background-color: white;
+}
+
+table{
+	width: 910px;
+	margin-left: 30px;
+}
+
+div#streamlist{
+    width:910px;
+    height:30px;
+    background-color:purple;
+}
+
+div#form-container{
+    visibility:hidden;
+    width:910px;
+    height:50px;
+}
+
+canvas#wordcloud{
+    width:355px;
+    height:300px;
+    background-color:lightgrey;
+}
+
+canvas#polarity{
+    width:150px;
+    height:300px;
+    background-color:lightgrey;
+}
+
+div#tweets{
+    width:910px;
+    height:30px;
+    background-color:white;
+}
+
+div#mapcanvas{
+    width:400px;
+    height:300px;
+    background-color:lightgrey;
+}
+
+div#fotos{
+    width:910px;
+    height:150px;
+    text-align:center;
+    background-color:purple;
+}
+
+
+</style>
+
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="http://timdream.org/wordcloud2.js/src/wordcloud2.js"></script>
+<script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyD6hLLddlXLuJE52eCmsFbA8OGZ0eh_UO4&sensor=false"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
+
+<script>
+	(function() {
+		var app = angular.module('myApp',[]);
+
+		app.controller('MainController', ['$scope', '$http', function($scope, $http, StreamService) {
+			var vm = this
+		    vm.greeting = 'Hola!';
+
+			vm.getStreams = function() {
+                $http({
+                    method: 'GET',
+                    url: '/streams'
+                }).then( function(response) {
+                    vm.streams = response.data;
+                    console.log(response.data);
+                });
+			};
+			vm.getStreams();
+
+			vm.actualizar = function(name) {
+			    vm.actualizarStream(name);
+                vm.actualizarWords(name);
+                vm.actualizarTweets(name);
+			};
+
+			vm.actualizarTweets = function(name) {
+                $http({
+                    method: 'GET',
+                    url: '/stream/' + name + '/polarity'
+                }).then( function(response) {
+                    vm.polarities = response.data.result;
+                    console.log(response.data.result);
+                });
+			};
+
+			vm.actualizarStream = function(name) {
+                $http({
+                    method: 'GET',
+                    url: '/stream/' + name + '?limit=5'
+                }).then( function(response) {
+                    vm.tweets = response.data.result;
+                    console.log(response.data.result);
+                });
+			}
+
+            vm.actualizarWords = function(name) {
+                $http({
+                    method: 'GET',
+                    url: '/stream/' + name + '/words?top=20'
+                }).then( function(response) {
+                    vm.words = response.data.result;
+                    console.log(response.data.result);
+                });
+            }
+
+			vm.addStream = function(){
+                $http({
+                    method: 'POST',
+                    url: '/stream',
+					data: {
+                        name: vm.name,
+						track: vm.track,
+					}
+                }).then( function(response) {
+                    vm.streams = response.data;
+                    vm.getStreams();
+                });
+
+			};
+
+			vm.streams = [];
+		}]);
+
+	})()
+</script>
+
+<body ng-app="myApp">
+	<div ng-controller="MainController as mainCtrl" style="color:white;background-color:#030300">
+		<input ng-model="mainCtrl.name"/>
+		<input ng-model="mainCtrl.track"/>
+		<button ng-click="mainCtrl.addStream()">add stream</button>
+		<div ng-click="mainCtrl.actualizar(stream[0])" ng-repeat="stream in mainCtrl.streams"> {{stream[0]}} -  {{stream[1]}}</div>
+		<div ng-if="mainCtrl.polarities" style="color:#ff070c;">
+			<p>positive - {{mainCtrl.polarities.positive}}</p>
+			<p>neutral - {{mainCtrl.polarities.neutral}}</p>
+			<p>negative -{{mainCtrl.polarities.negative}}</p>
+		</div>
+		<div ng-if="mainCtrl.words" ng-repeat="word in mainCtrl.words" style="color:#32ff03;">
+			<p>{{word[0]}} - {{word[1]}}</p>
+		</div>
+		<div ng-if="mainCtrl.tweets" ng-repeat="tweet in mainCtrl.tweets" style="color:#03f7ff;">
+			<p>{{tweet}}</p>
+		</div>
+	</div>
+</body>
+</html>
